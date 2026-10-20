@@ -509,7 +509,9 @@ async function viewDashboard(view) {
       </div>
     </div>
 
-    <div class="card" style="margin-top:16px">
+    ${
+      state.user?.role === 'admin'
+        ? `<div class="card" style="margin-top:16px">
       <div class="row between mb">
         <h3 style="margin:0">🤖 Trợ lý AI</h3>
         <span class="tag blue">Chat</span>
@@ -523,7 +525,9 @@ async function viewDashboard(view) {
         </div>
         <div id="ai-chat-typing" style="display:none;padding:0 16px 8px;font-size:11px;color:var(--muted)">Trợ lý đang trả lời...</div>
       </div>
-    </div>`;
+    </div>`
+        : ''
+    }`;
 
   view.querySelectorAll('[data-go]').forEach((b) =>
     b.addEventListener('click', () => {
