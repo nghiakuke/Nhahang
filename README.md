@@ -60,6 +60,12 @@ npm start
 - **Nhân viên**: thêm–sửa–xóa tài khoản, vai trò, khóa/mở tài khoản.
 - **Báo cáo**: doanh thu theo ngày, top món bán chạy, doanh thu theo nhóm/thanh toán, lọc theo khoảng ngày.
 - **Cài đặt**: tên nhà hàng, địa chỉ, điện thoại, thuế/phí phục vụ, đơn vị tiền tệ.
+- **Trợ lý AI toàn quyền** (chỉ admin): bóng chat trên trang Tổng quan hiểu lệnh tiếng Việt
+  và **thao tác dữ liệu thật** — mở đơn, thêm/xóa món, thanh toán, hủy đơn, chuyển trạng thái
+  món bếp; quản lý bàn, thực đơn (thêm/sửa/xóa món, đổi giá, hết món), đặt bàn, khách hàng,
+  nhân viên (thêm/sửa/xóa, khóa tài khoản); xem tổng quan, doanh thu và cài đặt.
+  Mặc định dùng bộ parse lệnh (miễn phí, offline); nếu cấu hình `OPENAI_API_KEY` trong `.env`
+  thì chuyển sang hiểu ngôn ngữ tự nhiên qua LLM (LLM lỗi tự rớt về parser).
 
 ## 4. Cấu trúc thư mục
 
@@ -70,6 +76,10 @@ server/
   middleware.js         ApiError, asyncHandler, authenticate, requireRole
   lib/security.js       Băm scrypt + ký/kiểm tra JWT HS256
   lib/order-service.js  Tính lại đơn, đồng bộ trạng thái, trạng thái bàn, mã đơn
+  lib/assistant/
+    actions.js          Hành động CRUD toàn quyền của Trợ lý AI
+    parser.js           Parse lệnh tiếng Việt (chế độ không cần LLM)
+    llm.js              Kết nối LLM kiểu OpenAI (có OPENAI_API_KEY mới bật)
   routes/
     auth.js             Đăng nhập, /me, đổi mật khẩu, quản lý nhân viên
     menu.js             Nhóm món và món ăn
@@ -77,6 +87,7 @@ server/
     orders.js           Đơn hàng, món trong đơn, hàng đợi bếp, thanh toán
     reservations.js     Đặt bàn và khách hàng
     reports.js          Tổng quan, báo cáo, cài đặt
+    assistant.js        Trợ lý AI (chỉ admin)
 public/
   index.html            Trang gốc
   styles.css            Giao diện
@@ -138,20 +149,35 @@ GET /api/reports/settings     Đọc cài đặt
 PUT /api/reports/settings     Lưu cài đặt (quản lý)
 ```
 
+**Trợ lý AI** (chỉ admin) — `assistant.js`
+
+```
+POST /api/assistant/chat   { message } → { reply, actions[], mode: 'parser'|'llm' }
+```
+
+Thực thi các hành động CRUD thật (xem `server/lib/assistant/actions.js`): đơn hàng, bàn,
+thực đơn, đặt bàn, khách hàng, nhân viên, báo cáo, cài đặt. Chế độ parse lệnh trong
+`server/lib/assistant/parser.js`; chế độ LLM trong `server/lib/assistant/llm.js`.
+
 ## 6. Kiểm thử
 
 ```bash
-npm test        # backend: 34/34
-npm run test:ui # giao diện: 44/44 (cần server đang chạy)
+npm test               # backend: 34/34
+npm run test:ui        # giao diện: 43/44 (cần server đang chạy)
+npm run test:assistant # trợ lý AI: 21/21 (cần server đang chạy)
 ```
 
 `test-api.sh` chạy trên server thật: đăng nhập, phân quyền, luồng POS trọn vẹn,
 đồng bộ trạng thái bếp ↔ đơn ↔ bàn, thanh toán, chặn trùng đặt bàn, báo cáo, đổi mật khẩu.
 
-`test-ui.js` dùng jsdom nạp trang thật rồi mô phỏng thao tác người dùng: đăng nhập sai/đúng,
+`test-ui.js` dùng jsdom nạp trang thật rồi mô phỏng thao tác người dùng thật: đăng nhập sai/đúng,
 mở POS từ sơ đồ bàn, gọi món, gửi bếp, bấm "Đã chín", thanh toán, xem đơn, đặt bàn,
 thêm khách, thêm món, thêm nhân viên, xem báo cáo, lưu cài đặt, đăng xuất và kiểm tra
 menu thay đổi theo vai trò. jsdom chỉ dùng để kiểm thử, **không** nằm trong `package.json`:
+
+`test-assistant.js` kiểm thử Trợ lý AI end-to-end trên server thật: phân quyền (chỉ admin),
+ra lệnh qua chat để tạo/đổi giá/hết món, mở đơn, thêm món, thanh toán, và xác minh dữ liệu
+đã đổi thật trong database.
 
 ```bash
 npm i --no-save jsdom

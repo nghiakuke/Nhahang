@@ -13,6 +13,7 @@ const tableRoutes = require('./routes/tables').router;
 const orderRoutes = require('./routes/orders');
 const reservationRoutes = require('./routes/reservations');
 const reportRoutes = require('./routes/reports').router;
+const assistantRoutes = require('./routes/assistant').router;
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -52,6 +53,7 @@ app.use('/api/kitchen', orderRoutes.kitchenRouter);
 app.use('/api/reservations', reservationRoutes.router);
 app.use('/api/customers', reservationRoutes.customerRouter);
 app.use('/api/reports', reportRoutes);
+app.use('/api/assistant', assistantRoutes);
 
 app.get('/api/health', (req, res) =>
   res.json({ ok: true, time: new Date().toISOString(), db: 'supabase', project: SUPABASE_URL })

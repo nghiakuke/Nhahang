@@ -9,7 +9,8 @@
     "seed": "node scripts/seed-supabase.js",
     "migrate": "node scripts/migrate-to-supabase.js",
     "test": "bash scripts/test-api.sh",
-    "test:ui": "node scripts/test-ui.js"
+    "test:ui": "node scripts/test-ui.js",
+    "test:assistant": "node scripts/test-assistant.js"
   },
   "engines": {
     "node": ">=22.5.0"

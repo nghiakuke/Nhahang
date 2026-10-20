@@ -519,7 +519,7 @@ async function viewDashboard(view) {
       <div id="ai-chat-bubble" style="position:relative;height:320px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--panel-2);display:flex;flex-direction:column">
         <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth"></div>
         <div style="padding:12px;border-top:1px solid var(--border);background:var(--panel);display:flex;gap:8px;align-items:center">
-          <input id="ai-chat-input" type="text" placeholder="Nhập tin nhắn hoặc nhấn mic để nói..." style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:24px;background:var(--bg);color:var(--text);font-size:13px" />
+          <input id="ai-chat-input" type="text" placeholder='Thử: "thêm 2 phở bò cho bàn 3", "thanh toán bàn 3", "doanh thu hôm nay"...' style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:24px;background:var(--bg);color:var(--text);font-size:13px" />
           <button class="btn" id="ai-chat-mic" style="border-radius:50%;width:40px;height:40px;padding:0;flex-shrink:0" title="Nói bằng giọng nói">🎤</button>
           <button class="btn primary" id="ai-chat-send" style="border-radius:50%;width:40px;height:40px;padding:0;flex-shrink:0" title="Gửi">➤</button>
         </div>
@@ -557,7 +557,7 @@ function setupAIChatBubble(view) {
   
   // Welcome message
   setTimeout(() => {
-    addBubbleMessage("Xin chào! Tôi là trợ lý AI của nhà hàng. Tôi có thể giúp gì cho bạn hôm nay?", false);
+    addBubbleMessage("Xin chào! Mình là trợ lý AI toàn quyền của nhà hàng — mình có thể mở đơn, thêm món, thanh toán, quản lý bàn, thực đơn, nhân viên... Bạn cứ ra lệnh tự nhiên nhé!", false);
   }, 300);
   
   function addBubbleMessage(text, isUser) {
@@ -593,39 +593,29 @@ function setupAIChatBubble(view) {
   async function getAIResponse(userMessage) {
     typingDiv.style.display = 'block';
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    
-    setTimeout(() => {
-      typingDiv.style.display = 'none';
-      const msg = userMessage.toLowerCase();
-      let response = '';
-      
-      if (msg.includes('doanh thu')) {
-        response = 'Bạn có thể xem doanh thu hôm nay tại thẻ "Doanh thu hôm nay" ở đầu trang. Chi tiết hơn, vào mục "Báo cáo" để xem doanh thu theo ngày, tháng và top món bán chạy.';
-      } else if (msg.includes('bàn trống')) {
-        response = 'Trong phần "Bàn trống nhanh" phía dưới, bạn có thể thấy danh sách các bàn đang trống. Chỉ cần nhấn vào tên bàn để mở đơn ngay.';
-      } else if (msg.includes('đơn hàng')) {
-        response = 'Vào mục "Đơn hàng" trong menu bên trái để xem tất cả đơn hàng, lọc theo trạng thái và xem chi tiết từng đơn.';
-      } else if (msg.includes('bếp')) {
-        response = 'Mục "Màn hình bếp" hiển thị các đơn đang chờ chế biến. Bếp có thể cập nhật trạng thái món: Chờ chế biến → Đang nấu → Đã chín.';
-      } else if (msg.includes('thanh toán')) {
-        response = 'Vào "Sơ đồ bàn", chọn bàn đang có khách, nhấn "Thanh toán". Hệ thống sẽ hiện hộp thoại để chọn phương thức thanh toán và áp dụng giảm giá nếu cần.';
-      } else if (msg.includes('đặt bàn')) {
-        response = 'Mục "Đặt bàn" giúp quản lý các lượt đặt trước. Bạn có thể thêm đặt bàn, xác nhận, xếp khách vào bàn hoặc hủy đặt bàn.';
-      } else if (msg.includes('thực đơn') || msg.includes('menu')) {
-        response = 'Mục "Thực đơn" cho phép quản lý danh mục, món ăn, giá cả và trạng thái còn/hết của từng món.';
-      } else if (msg.includes('nhân viên')) {
-        response = 'Mục "Nhân viên" (chỉ dành cho Quản trị viên/Quản lý) giúp thêm, sửa, xóa tài khoản và phân quyền cho nhân viên.';
-      } else if (msg.includes('xin chào') || msg.includes('chào')) {
-        response = 'Xin chào! Tôi có thể giúp bạn điều hướng và giải thích các chức năng của hệ thống quản lý nhà hàng. Bạn cần hỗ trợ gì ạ?';
-      } else if (msg.includes('cảm ơn')) {
-        response = 'Dạ không có gì ạ! Nếu cần giúp đỡ gì thêm, cứ nhắn cho tôi nhé!';
-      } else {
-        response = 'Tôi có thể hướng dẫn bạn sử dụng các chức năng: Tổng quan, Sơ đồ bàn, POS bán hàng, Màn hình bếp, Đơn hàng, Đặt bàn, Khách hàng, Thực đơn, Nhân viên, Báo cáo, Cài đặt. Bạn muốn biết về chức năng nào cụ thể?';
+
+    let reply = 'Xin lỗi, đã có lỗi xảy ra.';
+    let actions = [];
+    try {
+      const data = await api('/assistant/chat', { method: 'POST', body: { message: userMessage } });
+      reply = data.reply || '(trống)';
+      actions = data.actions || [];
+      const done = actions.filter((a) => a.ok).length;
+      if (actions.length) {
+        addBubbleMessage(
+          done === actions.length
+            ? `✅ Đã thực hiện ${done}/${actions.length} thao tác`
+            : `⚠️ Thực hiện được ${done}/${actions.length} thao tác`,
+          false
+        );
       }
-      
-      addBubbleMessage(response, false);
-      speak(response);
-    }, 800);
+    } catch (e) {
+      reply = `Xin lỗi, mình gặp lỗi: ${e.message}`;
+    }
+
+    typingDiv.style.display = 'none';
+    addBubbleMessage(reply, false);
+    speak(reply);
   }
   
   function sendMessage() {
